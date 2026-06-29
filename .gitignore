@@ -1,0 +1,12 @@
+pushover_config.json
+faces/*/
+static/photos/*
+entry_log.json
+scanner_control.json
+videos/*.mp4
+videos/*.MP4
+__pycache__/
+*.py[cod]
+*.log
+_upload_tmp.jpg
+.DS_Store
