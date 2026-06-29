@@ -1,0 +1,14 @@
+# Baseline Scanner — Python dependencies
+# Install with: pip install -r requirements.txt --break-system-packages
+#
+# NOTE: dlib (a face_recognition dependency) has no prebuilt wheel for
+# 64-bit Raspberry Pi OS / Python 3.13 and compiles from source (~20 min).
+# See INSTALL.md for the required system packages first.
+
+face_recognition
+opencv-python
+numpy
+flask
+requests
+pi5neo          # WS2812 LED control over SPI (Raspberry Pi 5)
+luma.oled       # SSD1306 OLED over I2C (optional)

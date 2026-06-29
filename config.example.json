@@ -1,0 +1,19 @@
+{
+    "person1": {
+        "display_name": "PERSON ONE",
+        "response": "Identity confirmed. Welcome home.",
+        "response_morning": "Good morning. Identity confirmed. Welcome back.",
+        "response_afternoon": "Identity confirmed. The room is yours.",
+        "response_evening": "Identity confirmed. Welcome home. Rest now.",
+        "response_late_night": "Identity confirmed. The hour is late. Rest well."
+    },
+
+    "unknown": {
+        "display_name": "UNKNOWN SUBJECT",
+        "response": "Unable to establish identity. Access denied.",
+        "response_morning": "Identity unknown. You were not expected.",
+        "response_afternoon": "Subject unrecognized. Access denied.",
+        "response_evening": "No match on file. Authorization required.",
+        "response_late_night": "Identity not recognized. The hour is late. Please leave."
+    }
+}

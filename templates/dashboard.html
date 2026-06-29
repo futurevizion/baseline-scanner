@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS DIVISION // BASELINE TERMINAL</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap');
+
+  :root{
+    --grn:#39ff9e;        /* primary phosphor green */
+    --grn-dim:#1f8f5a;    /* dim green */
+    --grn-deep:#0c3d28;   /* deep green */
+    --amber:#ffb627;      /* amber accent */
+    --red:#ff4d4d;        /* denial red */
+    --cyan:#54e6ff;       /* cyan accent */
+    --bg:#020805;         /* near-black green-tinted */
+    --panel:#04140d;      /* panel fill */
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+
+  html,body{height:100%;}
+
+  body{
+    background:var(--bg);
+    color:var(--grn);
+    font-family:'Share Tech Mono','Courier New',monospace;
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  /* CRT scanline + flicker overlay */
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:9000;
+    background:repeating-linear-gradient(
+      0deg,
+      rgba(0,0,0,0) 0px,
+      rgba(0,0,0,0) 2px,
+      rgba(0,0,0,0.28) 3px,
+      rgba(0,0,0,0.28) 4px
+    );
+    mix-blend-mode:multiply;
+  }
+  body::after{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:9001;
+    background:radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.55) 100%);
+  }
+
+  .flicker{animation:flick 6s infinite;}
+  @keyframes flick{
+    0%,100%{opacity:1;}
+    92%{opacity:1;}
+    93%{opacity:0.82;}
+    94%{opacity:1;}
+    97%{opacity:0.9;}
+    98%{opacity:1;}
+  }
+
+  .wrap{
+    position:relative;
+    z-index:10;
+    padding:18px 22px 60px;
+    max-width:1500px;
+    margin:0 auto;
+  }
+
+  /* ===== top status bar ===== */
+  .topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    border-bottom:1px solid var(--grn-dim);
+    padding-bottom:10px;
+    margin-bottom:6px;
+  }
+  .brand{display:flex;flex-direction:column;gap:2px;}
+  .brand .t1{
+    font-size:22px;letter-spacing:8px;color:var(--grn);
+    text-shadow:0 0 8px rgba(57,255,158,0.5);
+  }
+  .brand .t2{
+    font-size:11px;letter-spacing:5px;color:var(--grn-dim);
+  }
+  .clock{
+    text-align:right;font-size:12px;letter-spacing:2px;color:var(--cyan);
+    line-height:1.6;
+  }
+  .clock .big{font-size:20px;color:var(--grn);letter-spacing:3px;}
+
+  /* corner-bracket frame helper */
+  .frame{
+    position:relative;
+    border:1px solid var(--grn-deep);
+    background:linear-gradient(180deg, rgba(8,30,20,0.35), rgba(2,8,5,0.2));
+    padding:14px 16px;
+  }
+  .frame::before,.frame::after{
+    content:"";position:absolute;width:14px;height:14px;
+    border:2px solid var(--grn);
+  }
+  .frame::before{top:-1px;left:-1px;border-right:none;border-bottom:none;}
+  .frame::after{bottom:-1px;right:-1px;border-left:none;border-top:none;}
+  .frame .corner-tr,.frame .corner-bl{
+    content:"";position:absolute;width:14px;height:14px;border:2px solid var(--grn);
+  }
+  .frame .corner-tr{top:-1px;right:-1px;border-left:none;border-bottom:none;}
+  .frame .corner-bl{bottom:-1px;left:-1px;border-right:none;border-top:none;}
+
+  .frame-label{
+    position:absolute;top:-9px;left:14px;background:var(--bg);
+    padding:0 8px;font-size:10px;letter-spacing:4px;color:var(--grn-dim);
+  }
+
+  /* ===== layout grid ===== */
+  .grid{
+    display:grid;
+    grid-template-columns:1fr 1.4fr 1fr;
+    gap:14px;
+    margin-top:18px;
+  }
+  @media(max-width:1000px){.grid{grid-template-columns:1fr;}}
+
+  /* ===== stat readouts ===== */
+  .stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .stat{
+    border:1px solid var(--grn-deep);
+    padding:10px 12px;
+    background:rgba(8,30,20,0.25);
+  }
+  .stat .lbl{font-size:9px;letter-spacing:3px;color:var(--grn-dim);margin-bottom:6px;}
+  .stat .val{font-size:30px;letter-spacing:2px;color:var(--grn);font-family:'VT323',monospace;line-height:1;}
+  .stat .val.red{color:var(--red);}
+  .stat .val.amber{color:var(--amber);}
+
+  .sys-lines{font-size:11px;line-height:1.9;letter-spacing:1px;margin-top:4px;}
+  .sys-lines .ok{color:var(--grn);}
+  .sys-lines .dim{color:var(--grn-dim);}
+  .sys-lines .chev{color:var(--amber);}
+  .blink{animation:bk 1s steps(1) infinite;}
+  @keyframes bk{50%{opacity:0;}}
+
+  .chevbar{display:flex;gap:4px;margin-top:10px;align-items:center;}
+  .chevbar i{font-style:normal;color:var(--grn-dim);font-size:16px;}
+  .chevbar i.on{color:var(--grn);text-shadow:0 0 6px var(--grn);}
+
+  /* ===== feed (center) ===== */
+  .feed-head{
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:10px;letter-spacing:3px;color:var(--grn-dim);margin-bottom:8px;
+  }
+  .feed{display:flex;flex-direction:column;gap:6px;max-height:560px;overflow-y:auto;padding-right:6px;}
+  .feed::-webkit-scrollbar{width:8px;}
+  .feed::-webkit-scrollbar-track{background:rgba(8,30,20,0.3);}
+  .feed::-webkit-scrollbar-thumb{background:var(--grn-deep);border:1px solid var(--grn-dim);}
+
+  .row{
+    display:grid;
+    grid-template-columns:30px 1fr 96px;
+    align-items:center;
+    gap:10px;
+    border:1px solid var(--grn-deep);
+    border-left:3px solid var(--grn-dim);
+    padding:8px 10px;
+    cursor:pointer;
+    background:rgba(8,30,20,0.18);
+    transition:background .12s,border-color .12s;
+  }
+  .row:hover{background:rgba(57,255,158,0.10);border-left-color:var(--grn);}
+  .row.denied{border-left-color:var(--red);}
+  .row.denied:hover{background:rgba(255,77,77,0.10);}
+  .row .idx{font-size:11px;color:var(--grn-dim);font-family:'VT323',monospace;}
+  .row .who{font-size:14px;letter-spacing:3px;color:var(--grn);}
+  .row.denied .who{color:var(--red);}
+  .row .meta{font-size:9px;letter-spacing:2px;color:var(--grn-dim);margin-top:2px;}
+  .row .stamp{font-size:10px;letter-spacing:1px;color:var(--grn-dim);text-align:right;font-family:'VT323',monospace;}
+  .row .tag{
+    font-size:8px;letter-spacing:2px;padding:2px 6px;border:1px solid var(--grn-dim);
+    color:var(--grn);display:inline-block;margin-top:3px;
+  }
+  .row.denied .tag{border-color:var(--red);color:var(--red);}
+
+  /* ===== right column: live + dossier ===== */
+  .live-box{
+    aspect-ratio:4/3;border:1px solid var(--grn-deep);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--grn-dim);font-size:10px;letter-spacing:3px;text-align:center;
+    background:
+      repeating-linear-gradient(0deg, rgba(57,255,158,0.04) 0 1px, transparent 1px 6px),
+      rgba(4,20,13,0.5);
+    position:relative;
+  }
+  .live-box .rec{position:absolute;top:8px;left:8px;font-size:9px;color:var(--red);letter-spacing:2px;}
+  .live-box .rec b{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--red);margin-right:5px;vertical-align:middle;animation:bk 1.4s steps(1) infinite;}
+  .live-box .scan{position:absolute;left:0;right:0;height:2px;background:rgba(57,255,158,0.5);animation:scan 3.2s linear infinite;}
+
+  /* control buttons + register inputs (phosphor style) */
+  .ctrls{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  .cbtn{
+    flex:1;min-width:90px;padding:9px 6px;
+    background:rgba(8,30,20,0.4);
+    border:1px solid var(--grn-deep);
+    color:var(--grn);
+    font-family:'Share Tech Mono','Courier New',monospace;
+    font-size:10px;letter-spacing:2px;cursor:pointer;
+    transition:all .12s;
+  }
+  .cbtn:hover{background:rgba(57,255,158,0.12);border-color:var(--grn);text-shadow:0 0 6px var(--grn);}
+  .cbtn.on{background:rgba(57,255,158,0.18);border-color:var(--grn);color:var(--grn);text-shadow:0 0 8px var(--grn);}
+  .cbtn.red{color:var(--red);border-color:#5a1f1f;}
+  .cbtn.red:hover{background:rgba(255,77,77,0.12);border-color:var(--red);text-shadow:0 0 6px var(--red);}
+  .mode-line{font-size:10px;letter-spacing:2px;color:var(--grn-dim);margin-top:8px;}
+  .mode-line span{color:var(--grn);}
+  .add-in{
+    width:100%;padding:9px;background:rgba(2,8,5,0.6);
+    border:1px solid var(--grn-deep);color:var(--grn);
+    font-family:'Share Tech Mono','Courier New',monospace;
+    font-size:11px;letter-spacing:2px;
+  }
+  .add-in:focus{outline:none;border-color:var(--grn);}
+  .add-msg{font-size:10px;letter-spacing:1px;margin-top:8px;min-height:13px;color:var(--grn-dim);}
+  .add-msg.ok{color:var(--grn);}
+  .add-msg.err{color:var(--red);}
+  @keyframes scan{0%{top:0;}100%{top:100%;}}
+
+  .dossier{margin-top:14px;}
+  .dossier .empty{font-size:11px;color:var(--grn-dim);letter-spacing:2px;text-align:center;padding:30px 0;}
+  .dossier .photo{
+    width:100%;aspect-ratio:1/1;object-fit:cover;border:1px solid var(--grn-dim);
+    filter:sepia(1) hue-rotate(80deg) saturate(2.2) brightness(0.85) contrast(1.1);
+    display:block;
+  }
+  .dossier .dname{font-size:18px;letter-spacing:5px;color:var(--grn);margin:12px 0 4px;}
+  .dossier .dname.denied{color:var(--red);}
+  .dfields{font-size:11px;line-height:2;letter-spacing:1px;border-top:1px solid var(--grn-deep);margin-top:8px;padding-top:8px;}
+  .dfields .f{display:flex;justify-content:space-between;}
+  .dfields .f .k{color:var(--grn-dim);}
+  .dfields .f .v{color:var(--grn);}
+  .dfields .f .v.denied{color:var(--red);}
+
+  .footer{
+    margin-top:22px;border-top:1px solid var(--grn-deep);padding-top:8px;
+    display:flex;justify-content:space-between;font-size:9px;letter-spacing:3px;color:var(--grn-dim);
+  }
+
+  .ticker{
+    overflow:hidden;white-space:nowrap;font-size:10px;letter-spacing:3px;color:var(--grn-dim);
+    margin-top:6px;
+  }
+  .ticker span{display:inline-block;padding-left:100%;animation:tick 28s linear infinite;}
+  @keyframes tick{0%{transform:translateX(0);}100%{transform:translateX(-100%);}}
+</style>
+</head>
+<body>
+<div class="wrap flicker">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="t1">BASELINE</div>
+      <div class="t2">NEXUS DIVISION // INTERLINK TERMINAL</div>
+    </div>
+    <div class="clock">
+      <div class="big" id="clk">--:--:--</div>
+      <div id="cdate">SECTOR JP-0 // ENTRY POINT 01</div>
+    </div>
+  </div>
+
+  <div class="ticker"><span id="tick">INITIALIZING INTERLINK BUFFER // CELLS INTERLINKED // A SYSTEM OF CELLS INTERLINKED WITHIN CELLS INTERLINKED WITHIN CELLS INTERLINKED WITHIN ONE STEM //</span></div>
+
+  <div class="grid">
+
+    <!-- LEFT: system status -->
+    <div>
+      <div class="frame">
+        <span class="corner-tr"></span><span class="corner-bl"></span>
+        <div class="frame-label">SYS STATUS</div>
+        <div class="stat-row">
+          <div class="stat"><div class="lbl">TOTAL EVENTS</div><div class="val" id="s-total">0</div></div>
+          <div class="stat"><div class="lbl">CONFIRMED</div><div class="val" id="s-conf">0</div></div>
+          <div class="stat"><div class="lbl">DENIED</div><div class="val red" id="s-den">0</div></div>
+          <div class="stat"><div class="lbl">SUBJECTS</div><div class="val amber" id="s-subj">0</div></div>
+        </div>
+        <div class="sys-lines">
+          <div><span class="chev">&gt;</span> <span class="ok">SCANNER ONLINE</span></div>
+          <div><span class="chev">&gt;</span> <span class="ok">INTERLINK STABLE</span></div>
+          <div><span class="chev">&gt;</span> <span class="dim">MONITORING ENTRY POINT</span><span class="blink ok">_</span></div>
+        </div>
+        <div class="chevbar">
+          <i class="on">&#9656;</i><i class="on">&#9656;</i><i class="on">&#9656;</i><i class="on">&#9656;</i><i>&#9656;</i><i>&#9656;</i><i>&#9656;</i>
+        </div>
+      </div>
+
+      <div class="frame" style="margin-top:14px;">
+        <span class="corner-tr"></span><span class="corner-bl"></span>
+        <div class="frame-label">LIVE FEED</div>
+        <div class="live-box" id="live-box">
+          <div class="rec" id="live-rec" style="display:none;"><b></b>REC</div>
+          <div class="scan"></div>
+          <img id="live-img" style="display:none;width:100%;height:100%;object-fit:cover;" alt="live">
+          <span id="live-msg">CAMERA FEED OFFLINE<br>// PRESS LIVE FEED //</span>
+        </div>
+        <div class="ctrls">
+          <button class="cbtn" id="cb-live"  onclick="setMode('live')">LIVE FEED</button>
+          <button class="cbtn" id="cb-scan"  onclick="setMode('running')">RESUME SCAN</button>
+          <button class="cbtn red" id="cb-pause" onclick="setMode('paused')">PAUSE</button>
+        </div>
+        <div class="mode-line">MODE: <span id="mode-val">--</span></div>
+      </div>
+
+      <div class="frame" style="margin-top:14px;">
+        <span class="corner-tr"></span><span class="corner-bl"></span>
+        <div class="frame-label">REGISTER SUBJECT</div>
+        <input class="add-in" id="add-name" type="text" placeholder="SUBJECT NAME" autocomplete="off">
+        <input class="add-in" id="add-file" type="file" accept="image/*" style="margin-top:8px;">
+        <div class="ctrls" style="margin-top:8px;">
+          <button class="cbtn" onclick="uploadFace()">UPLOAD FACE</button>
+          <button class="cbtn red" onclick="reloadScanner()">RELOAD SCANNER</button>
+        </div>
+        <div class="add-msg" id="add-msg"></div>
+      </div>
+    </div>
+
+    <!-- CENTER: event feed -->
+    <div class="frame">
+      <span class="corner-tr"></span><span class="corner-bl"></span>
+      <div class="frame-label">ENTRY LOG</div>
+      <div class="feed-head">
+        <span>SUBJECT // STATUS // STAMP</span>
+        <span id="feed-count">0 RECORDS</span>
+      </div>
+      <div class="feed" id="feed">
+        <div class="empty" style="font-size:11px;color:var(--grn-dim);letter-spacing:2px;text-align:center;padding:30px 0;">AWAITING ENTRY EVENTS</div>
+      </div>
+    </div>
+
+    <!-- RIGHT: dossier -->
+    <div class="frame">
+      <span class="corner-tr"></span><span class="corner-bl"></span>
+      <div class="frame-label">SUBJECT DOSSIER</div>
+      <div class="dossier" id="dossier">
+        <div class="empty">SELECT AN ENTRY EVENT<br>TO INSPECT DOSSIER</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    <span>BASELINE v2.0 // NEXUS-6 PROTOCOL</span>
+    <span>AUTO-REFRESH 5S</span>
+    <span id="foot-stamp">--</span>
+  </div>
+</div>
+
+<script>
+  let ENTRIES=[];
+  let selectedIdx=null;
+
+  function pad(n){return String(n).padStart(2,'0');}
+  function tickClock(){
+    const d=new Date();
+    document.getElementById('clk').textContent=pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+    document.getElementById('foot-stamp').textContent=d.toISOString().slice(0,19).replace('T',' ');
+  }
+  setInterval(tickClock,1000);tickClock();
+
+  function render(){
+    const feed=document.getElementById('feed');
+    const total=ENTRIES.length;
+    let conf=0,den=0;const names=new Set();
+    ENTRIES.forEach(e=>{
+      if((e.status||'').toUpperCase()==='CONFIRMED'){conf++;names.add((e.name||'').toUpperCase());}
+      else den++;
+    });
+    document.getElementById('s-total').textContent=total;
+    document.getElementById('s-conf').textContent=conf;
+    document.getElementById('s-den').textContent=den;
+    document.getElementById('s-subj').textContent=names.size;
+    document.getElementById('feed-count').textContent=total+' RECORD'+(total!==1?'S':'');
+
+    if(total===0){
+      feed.innerHTML='<div class="empty" style="font-size:11px;color:var(--grn-dim);letter-spacing:2px;text-align:center;padding:30px 0;">NO ENTRY EVENTS RECORDED</div>';
+      return;
+    }
+
+    const view=[...ENTRIES];
+    feed.innerHTML=view.map((e,i)=>{
+      const denied=(e.status||'').toUpperCase()!=='CONFIRMED';
+      const realIdx=i;
+      return `<div class="row ${denied?'denied':''}" data-i="${realIdx}">
+        <div class="idx">${String(total-i).padStart(3,'0')}</div>
+        <div>
+          <div class="who">${(e.name||'UNKNOWN')}</div>
+          <div class="meta"><span class="tag">BASELINE ${(e.status||'')}</span></div>
+        </div>
+        <div class="stamp">${(e.timestamp||'').replace(' ','<br>')}</div>
+      </div>`;
+    }).join('');
+
+    feed.querySelectorAll('.row').forEach(r=>{
+      r.addEventListener('click',()=>{selectDossier(parseInt(r.dataset.i));});
+    });
+  }
+
+  function selectDossier(i){
+    selectedIdx=i;
+    const e=ENTRIES[i];
+    if(!e)return;
+    const denied=(e.status||'').toUpperCase()!=='CONFIRMED';
+    const d=document.getElementById('dossier');
+    const photo=e.photo
+      ? `<img class="photo" src="/photos/${e.photo}" alt="subject" onerror="this.style.display='none'">`
+      : '';
+    d.innerHTML=`
+      ${photo}
+      <div class="dname ${denied?'denied':''}">${e.name||'UNKNOWN'}</div>
+      <div class="dfields">
+        <div class="f"><span class="k">STATUS</span><span class="v ${denied?'denied':''}">BASELINE ${e.status||''}</span></div>
+        <div class="f"><span class="k">TIMESTAMP</span><span class="v">${e.timestamp||'--'}</span></div>
+        <div class="f"><span class="k">RECORD ID</span><span class="v">${String(i+1).padStart(4,'0')}</span></div>
+        <div class="f"><span class="k">CLASS</span><span class="v ${denied?'denied':''}">${denied?'INTRUDER':'AUTHORIZED'}</span></div>
+        <div class="f"><span class="k">DIVISION</span><span class="v">NEXUS // JP-0</span></div>
+      </div>`;
+  }
+
+  async function load(){
+    try{
+      const res=await fetch('/api/entries');
+      ENTRIES=await res.json();
+      render();
+      if(selectedIdx!==null && ENTRIES[selectedIdx]) selectDossier(selectedIdx);
+    }catch(err){console.error('load failed',err);}
+  }
+  load();
+  setInterval(load,2000);
+
+  // ===== Live feed + mode control =====
+  const LIVE_PORT = 8090;
+
+  async function setMode(mode){
+    try{
+      await fetch('/api/mode',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({state:mode})
+      });
+      applyMode(mode);
+    }catch(err){console.error(err);}
+  }
+
+  function applyMode(mode){
+    document.getElementById('mode-val').textContent = mode.toUpperCase();
+    document.getElementById('cb-live').classList.toggle('on', mode==='live');
+    document.getElementById('cb-scan').classList.toggle('on', mode==='running');
+    document.getElementById('cb-pause').classList.toggle('on', mode==='paused');
+
+    const img = document.getElementById('live-img');
+    const msg = document.getElementById('live-msg');
+    const rec = document.getElementById('live-rec');
+    if(mode==='live'){
+      const host = window.location.hostname;
+      img.src = 'http://'+host+':'+LIVE_PORT+'/stream?t='+Date.now();
+      img.style.display='block';
+      msg.style.display='none';
+      rec.style.display='block';
+    }else{
+      img.style.display='none';
+      img.src='';
+      msg.style.display='block';
+      rec.style.display='none';
+    }
+  }
+
+  async function loadMode(){
+    try{
+      const res=await fetch('/api/mode');
+      const data=await res.json();
+      applyMode(data.state||'running');
+    }catch(err){applyMode('running');}
+  }
+  loadMode();
+
+  // ===== Register subject =====
+  async function uploadFace(){
+    const name=document.getElementById('add-name').value.trim();
+    const fileInput=document.getElementById('add-file');
+    const msg=document.getElementById('add-msg');
+    msg.className='add-msg';
+    if(!name){msg.className='add-msg err';msg.textContent='ENTER A NAME FIRST.';return;}
+    if(!fileInput.files.length){msg.className='add-msg err';msg.textContent='CHOOSE A PHOTO FIRST.';return;}
+    const fd=new FormData();
+    fd.append('name',name);
+    fd.append('photo',fileInput.files[0]);
+    msg.textContent='UPLOADING & VALIDATING FACE...';
+    try{
+      const res=await fetch('/api/add_subject',{method:'POST',body:fd});
+      const data=await res.json();
+      msg.className='add-msg '+(data.ok?'ok':'err');
+      msg.textContent=(data.ok?'SAVED: ':'FAILED: ')+data.message;
+      if(data.ok){document.getElementById('add-name').value='';fileInput.value='';}
+    }catch(err){msg.className='add-msg err';msg.textContent='UPLOAD ERROR.';}
+  }
+
+  async function reloadScanner(){
+    const msg=document.getElementById('add-msg');
+    msg.className='add-msg';msg.textContent='RELOADING SCANNER...';
+    try{
+      const res=await fetch('/api/reload',{method:'POST'});
+      const data=await res.json();
+      msg.className='add-msg '+(data.ok?'ok':'err');
+      msg.textContent=data.message;
+    }catch(err){msg.className='add-msg err';msg.textContent='RELOAD ERROR.';}
+  }
+</script>
+</body>
+</html>
+
