@@ -10,3 +10,5 @@ __pycache__/
 *.log
 _upload_tmp.jpg
 .DS_Store
+auth_config.json
+encodings_cache.pkl
